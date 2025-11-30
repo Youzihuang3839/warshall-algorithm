@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warshall算法求传递闭包</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            margin-top: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 2.2rem;
+        }
+        
+        .description {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #555;
+            line-height: 1.6;
+        }
+        
+        .input-section {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            gap: 25px;
+            flex-wrap: wrap;
+        }
+        
+        input {
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            width: 300px;
+            transition: border-color 0.3s;
+        }
+
+        /* 隐藏数字输入框的上下箭头 */
+        input[type="number"] {
+            -moz-appearance: textfield; /* Firefox */
+        }
+        
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        input:focus {
+            border-color: #3498db;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+        }
+        
+        button {
+            padding: 12px 25px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .matrix-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .matrix {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .matrix-title {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+        
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        td {
+            background-color: white;
+        }
+        
+        .changed-cell {
+            background-color: #ffeb3b;
+            font-weight: bold;
+        }
+        
+        .algorithm-steps {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .algorithm-steps h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            position: sticky;
+            top: 0;
+            background-color: #f8f9fa;
+            padding: 10px 0;
+        }
+        
+        .step {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .step-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .step-number {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 30px;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+        
+        .step-description {
+            font-weight: 500;
+        }
+        
+        .step-matrix {
+            overflow-x: auto;
+        }
+        
+        .step-matrix table {
+            width: auto;
+            margin: 0 auto;
+        }
+        
+        @media (max-width: 768px) {
+            .matrix-container {
+                flex-direction: column;
+            }
+            
+            .matrix {
+                min-width: 100%;
+            }
+        }
+        
+        
+        .input-hint {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Warshall算法求传递闭包</h1>
+    <p class="description">输入矩阵的行列数，生成随机布尔矩阵，并使用Warshall算法计算其传递闭包</p>
+    
+    <div class="container">
+        <div class="input-section">
+            <input type="number" id="matrixSize" placeholder="请输入矩阵大小 (2-10之间的整数)">
+            <button id="generateBtn">生成随机矩阵并计算</button>
+        </div>
+        
+        <div class="matrix-container">
+            <div class="matrix">
+                <h3 class="matrix-title">原始矩阵</h3>
+                <div id="originalMatrix"></div>
+            </div>
+            
+            <div class="matrix">
+                <h3 class="matrix-title">传递闭包矩阵</h3>
+                <div id="closureMatrix"></div>
+            </div>
+        </div>
+        
+        <div class="algorithm-steps">
+            <h3>Warshall算法步骤</h3>
+            <div id="stepsContainer"></div>
+        </div>
+    </div>
+    
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const matrixSizeInput = document.getElementById('matrixSize');
+            const generateBtn = document.getElementById('generateBtn');
+            const originalMatrixDiv = document.getElementById('originalMatrix');
+            const closureMatrixDiv = document.getElementById('closureMatrix');
+            const stepsContainer = document.getElementById('stepsContainer');
+            
+            let currentMatrix = [];
+            let stepCounter = 0;
+            
+            // 生成随机布尔矩阵
+            function generateRandomMatrix(size) {
+                const matrix = [];
+                for (let i = 0; i < size; i++) {
+                    const row = [];
+                    for (let j = 0; j < size; j++) {
+                        // 生成随机布尔值，有70%的概率为false，30%的概率为true
+                        row.push(Math.random() < 0.3);
+                    }
+                    matrix.push(row);
+                }
+                return matrix;
+            }
+            
+            // 显示矩阵
+            function displayMatrix(matrix, container, highlightCell = null) {
+                if (matrix.length === 0) {
+                    container.innerHTML = '<p>矩阵未生成</p>';
+                    return;
+                }
+                
+                const size = matrix.length;
+                let tableHTML = '<table>';
+                
+                // 表格内容
+                for (let i = 0; i < size; i++) {
+                    tableHTML += '<tr>';
+                    for (let j = 0; j < size; j++) {
+                        const value = matrix[i][j];
+                        const isHighlighted = highlightCell && highlightCell.i === i && highlightCell.j === j;
+                        const cellClass = isHighlighted ? 'changed-cell' : '';
+                        tableHTML += `<td class="${cellClass}">${value ? '1' : '0'}</td>`;
+                    }
+                    tableHTML += '</tr>';
+                }
+                
+                tableHTML += '</table>';
+                container.innerHTML = tableHTML;
+            }
+            
+            // 使用Warshall算法计算传递闭包
+            function warshallAlgorithm(matrix) {
+                const size = matrix.length;
+                const closure = [];
+                stepsContainer.innerHTML = '';
+                stepCounter = 0;
+                
+                // 复制原始矩阵
+                for (let i = 0; i < size; i++) {
+                    closure[i] = [...matrix[i]];
+                }
+                
+                // 添加初始步骤
+                addStep(stepCounter++, '初始化传递闭包矩阵为原始矩阵', closure);
+                
+                // Warshall算法核心
+                for (let k = 0; k < size; k++) {
+                    addStep(stepCounter++, `k = ${k+1}: 考虑中间节点 ${k+1}`, closure, null, true);
+                    
+                    for (let i = 0; i < size; i++) {
+                        for (let j = 0; j < size; j++) {
+                            if (closure[i][j] || (closure[i][k] && closure[k][j])) {
+                                if (!closure[i][j]) {
+                                    closure[i][j] = true;
+                                    addStep(stepCounter++, 
+                                        `设置 R[${i+1}][${j+1}] = 1 (因为 R[${i+1}][${k+1}] 和 R[${k+1}][${j+1}] 都为1)`, 
+                                        closure, {i, j});
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                return closure;
+            }
+            
+            // 添加算法步骤
+            function addStep(stepNumber, description, matrix, changedCell = null, isKStep = false) {
+                const stepDiv = document.createElement('div');
+                stepDiv.className = 'step';
+                
+                const stepHeader = document.createElement('div');
+                stepHeader.className = 'step-header';
+                stepHeader.innerHTML = `<span class="step-number">${stepNumber}</span><span class="step-description">${description}</span>`;
+                stepDiv.appendChild(stepHeader);
+                
+                // 创建当前步骤的矩阵展示
+                const stepMatrix = document.createElement('div');
+                stepMatrix.className = 'step-matrix';
+                
+                const size = matrix.length;
+                let tableHTML = '<table>';
+                
+                // 表格内容
+                for (let i = 0; i < size; i++) {
+                    tableHTML += '<tr>';
+                    for (let j = 0; j < size; j++) {
+                        const value = matrix[i][j];
+                        const isHighlighted = changedCell && changedCell.i === i && changedCell.j === j;
+                        const cellClass = isHighlighted ? 'changed-cell' : '';
+                        tableHTML += `<td class="${cellClass}">${value ? '1' : '0'}</td>`;
+                    }
+                    tableHTML += '</tr>';
+                }
+                
+                tableHTML += '</table>';
+                stepMatrix.innerHTML = tableHTML;
+                stepDiv.appendChild(stepMatrix);
+                
+                stepsContainer.appendChild(stepDiv);
+                
+                // 如果是k步骤，添加分隔线
+                if (isKStep) {
+                    const separator = document.createElement('div');
+                    separator.style.height = '1px';
+                    separator.style.background = '#ddd';
+                    separator.style.margin = '10px 0';
+                    stepsContainer.appendChild(separator);
+                }
+            }
+            
+            // 生成矩阵按钮事件
+            generateBtn.addEventListener('click', function() {
+                let matrixSize = parseInt(matrixSizeInput.value);
+                
+                if (isNaN(matrixSize) || matrixSize < 2 || matrixSize > 10) {
+                    alert('请输入2到10之间的整数！');
+                    matrixSizeInput.focus();
+                    return;
+                }
+                
+                currentMatrix = generateRandomMatrix(matrixSize);
+                displayMatrix(currentMatrix, originalMatrixDiv);
+                
+                const closureMatrix = warshallAlgorithm(currentMatrix);
+                displayMatrix(closureMatrix, closureMatrixDiv);
+                
+                // 滚动到步骤区域
+                document.querySelector('.algorithm-steps').scrollIntoView({ behavior: 'smooth' });
+            });
+            
+            // 初始状态
+            originalMatrixDiv.innerHTML = '<p>请输入矩阵大小并点击生成按钮</p>';
+            closureMatrixDiv.innerHTML = '<p>请输入矩阵大小并点击生成按钮</p>';
+            stepsContainer.innerHTML = '<p>请输入矩阵大小并点击生成按钮查看算法步骤</p>';
+        });
+    </script>
+</body>
+</html>
